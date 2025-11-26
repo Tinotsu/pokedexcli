@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bufio"
 	"os"
+	"github.com/Tinotsu/pokedexcli/internal/pokecache"
 )
 
 func main() {
@@ -17,6 +18,8 @@ func main() {
 			msg := scanner.Text()
 			str := cleanInput(msg)
 			switch msg {
+			case "cache":
+				pokecache.CacheTest()
 			case "exit" :
 				commandExit()
 			case "help":

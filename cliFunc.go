@@ -3,7 +3,7 @@ package main
 import(
 	"os"
 	"fmt"
-	"github.com/Tinotsu/pokeapi"
+	"github.com/Tinotsu/pokedexcli/internal/pokeapi"
 )
 
 type cliCommand struct {
