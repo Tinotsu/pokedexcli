@@ -10,41 +10,61 @@ import(
 func CacheTest() {
 	fmt.Print("pokecache")
 }
-
-type cache struct {
+type Cache struct {
 	entry map[string]cacheEntry
-	mu sync.Mutex
+	Mu sync.Mutex
 }
 type cacheEntry struct {
 	createdAt time.Time
 	val []byte
 }
-func NewCache(interval time.Duration) *cache {
-	c := new(cache)
-	reapLoop(c, interval)
+func reapLoop(c *Cache, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	for range ticker.C {
+		timeNow := time.Now()
+		c.Mu.Lock()
+		for k, v := range c.entry {
+			if timeNow.Sub(v.createdAt) > interval {
+				delete(c.entry, k)
+			}
+		}
+		c.Mu.Unlock()
+	}
+}
+func NewCache(interval time.Duration) *Cache {
+	c := new(Cache)
+	c.entry = map[string]cacheEntry{}
+	go reapLoop(c, interval)
 	return c
 }
-func (c *cache) Add(key string, val []byte) {
-	c.mu.Lock()
-	m := new(cacheEntry)
-	m.val = val
-	c.entry[key] = *m
-	c.mu.Unlock()
-} 
-func (c *cache) Get(key string) ([]byte, bool) {
-	val := c.entry[key].val
-	if val != nil {
-		return val, true
-	}
-	return []byte{}, false
-}
-func reapLoop(c *cache, interval time.Duration) {
-	c.mu.Lock()
-	for k, v := range c.entry {
-		t1 := time.Now()
-		if t1.Sub(v.createdAt) > interval {
-			delete(c.entry, k)
+func (c *Cache) Add(key string, val []byte) {
+	c.Mu.Lock()
+	existsKey := false
+	for k := range c.entry {
+		if k == key {
+			existsKey = true
 		}
 	}
-	c.mu.Unlock()
+	if !existsKey {
+		m := new(cacheEntry)
+		m.val = val
+		m.createdAt = time.Now()
+		c.entry[key] = *m
+	} else {
+		v := c.entry[key]
+		v.createdAt = time.Now()
+		v.val = val
+		c.entry[key] = v
+	}
+	c.Mu.Unlock()
+} 
+func (c *Cache) Get(key string) ([]byte, bool) {
+	c.Mu.Lock()
+	val := c.entry[key].val
+	if val != nil {
+		c.Mu.Unlock()
+		return val, true
+	}
+	c.Mu.Unlock()
+	return []byte{}, false
 }
